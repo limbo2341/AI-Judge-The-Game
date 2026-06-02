@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = ["pip install aiogram==3.13.1 sqlalchemy==2.0.36 aiosqlite==0.20.0"]
+
+[start]
+cmd = "python main.py"
