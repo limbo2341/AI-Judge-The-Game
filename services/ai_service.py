@@ -1,22 +1,23 @@
 import json, logging, os, urllib.request, asyncio
+
+# Load .env manually
+_env = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
+if os.path.exists(_env):
+    with open(_env) as f:
+        for line in f:
+            line = line.strip()
+            if line and '=' in line and not line.startswith('#'):
+                k, v = line.split('=', 1)
+                os.environ[k.strip()] = v.strip()
+
 logger = logging.getLogger(__name__)
 
 async def _ai(prompt: str) -> str:
-    key = os.getenv("CEREBRAS_API_KEY", "")
+    key = os.environ.get("CEREBRAS_API_KEY", "")
     if not key:
-        raise ValueError("CEREBRAS_API_KEY not set")
-    body = json.dumps({
-        "model": "gpt-oss-120b",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.9,
-        "max_tokens": 1000
-    }).encode()
-    req = urllib.request.Request(
-        "https://api.cerebras.ai/v1/chat/completions",
-        data=body,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
-        method="POST"
-    )
+        raise ValueError(f"CEREBRAS_API_KEY not set, env keys: {list(os.environ.keys())}")
+    body = json.dumps({"model":"gpt-oss-120b","messages":[{"role":"user","content":prompt}],"temperature":0.9,"max_tokens":1000}).encode()
+    req = urllib.request.Request("https://api.cerebras.ai/v1/chat/completions", data=body, headers={"Content-Type":"application/json","Authorization":f"Bearer {key}"}, method="POST")
     def do():
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode())
@@ -27,9 +28,8 @@ async def generate_case(case_type: str) -> dict:
     prompt = f"""Ти генератор юридичних справ для гри-симулятора судді України.
 Згенеруй унікальну реалістичну справу категорії {case_type}.
 Придумай РЕАЛЬНІ імена, конкретні деталі, місця, докази.
-Справа має підпадати під реальну статтю законодавства України.
 Відповідь ТІЛЬКИ JSON без markdown:
-{{"story":"детальний опис справи 5-7 речень з іменами та деталями","hidden_article":"точна стаття та правильний вирок"}}"""
+{{"story":"детальний опис справи 5-7 речень","hidden_article":"точна стаття та правильний вирок"}}"""
     try:
         text = await _ai(prompt)
         text = text.replace("```json","").replace("```","").strip()
@@ -45,10 +45,9 @@ async def character_dialogue(character_type: str, case_story: str, history: list
         hist += f"{role}: {m['content']}\n"
     prompt = f"""Ти граєш роль {character_type} у судовій справі України.
 СПРАВА: {case_story}
-ДІАЛОГ:
-{hist}
+ДІАЛОГ: {hist}
 Суддя: {user_message}
-Відповідай від імені {character_type} виходячи з деталей справи. 2-4 речення, емоційно, реалістично."""
+Відповідай від імені {character_type}. 2-4 речення, емоційно."""
     try:
         return await _ai(prompt)
     except Exception as e:
@@ -56,12 +55,12 @@ async def character_dialogue(character_type: str, case_story: str, history: list
         return f"[Помилка: {e}]"
 
 async def evaluate_verdict(case_story: str, hidden_article: str, user_verdict: str) -> dict:
-    prompt = f"""Ти Верховний суддя України. Оціни рішення гравця.
+    prompt = f"""Ти Верховний суддя України.
 Справа: {case_story}
 Правильна стаття: {hidden_article}
 Рішення гравця: {user_verdict}
-Оціни від 1 до 3. Відповідь ТІЛЬКИ JSON без markdown:
-{{"score":2,"feedback":"детальний розбір українською 3-4 речення"}}"""
+Оціни від 1 до 3. ТІЛЬКИ JSON:
+{{"score":2,"feedback":"розбір українською"}}"""
     try:
         text = await _ai(prompt)
         text = text.replace("```json","").replace("```","").strip()
