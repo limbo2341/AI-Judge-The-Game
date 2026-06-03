@@ -2,16 +2,17 @@ import json, logging, os, urllib.request, asyncio
 logger = logging.getLogger(__name__)
 
 async def _ai(prompt: str) -> str:
-    key = os.getenv("OPENROUTER_API_KEY", "")
+    key = os.getenv("CEREBRAS_API_KEY", "")
     if not key:
-        raise ValueError("OPENROUTER_API_KEY not set")
+        raise ValueError("CEREBRAS_API_KEY not set")
     body = json.dumps({
-        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "model": "llama-3.3-70b",
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.9
+        "temperature": 0.9,
+        "max_tokens": 1000
     }).encode()
     req = urllib.request.Request(
-        "https://openrouter.ai/api/v1/chat/completions",
+        "https://api.cerebras.ai/v1/chat/completions",
         data=body,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
         method="POST"
