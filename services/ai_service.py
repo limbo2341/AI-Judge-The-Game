@@ -13,7 +13,7 @@ if os.path.exists(_env):
 logger = logging.getLogger(__name__)
 
 async def _ai(prompt: str) -> str:
-    key = os.environ.get("CEREBRAS_API_KEY", "")
+    key = os.environ.get("CEREBRAS_API_KEY", "csk-69x4xnkxp6p4m53p5jy2cvrp8ch92jd8nryj8t2n69dvpnh8")
     if not key:
         raise ValueError(f"CEREBRAS_API_KEY not set, env keys: {list(os.environ.keys())}")
     body = json.dumps({"model":"gpt-oss-120b","messages":[{"role":"user","content":prompt}],"temperature":0.9,"max_tokens":1000}).encode()
