@@ -1,12 +1,21 @@
 import json, logging, os, urllib.request, asyncio
 logger = logging.getLogger(__name__)
 
-async def _groq(prompt: str) -> str:
-    key = os.getenv("GROQ_API_KEY", "")
+async def _ai(prompt: str) -> str:
+    key = os.getenv("OPENROUTER_API_KEY", "")
     if not key:
-        raise ValueError("GROQ_API_KEY not set")
-    body = json.dumps({"model":"llama-3.3-70b-versatile","messages":[{"role":"user","content":prompt}],"temperature":0.9,"max_tokens":1000}).encode()
-    req = urllib.request.Request("https://api.groq.com/openai/v1/chat/completions", data=body, headers={"Content-Type":"application/json","Authorization":f"Bearer {key}"}, method="POST")
+        raise ValueError("OPENROUTER_API_KEY not set")
+    body = json.dumps({
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.9
+    }).encode()
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=body,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        method="POST"
+    )
     def do():
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode())
@@ -21,7 +30,7 @@ async def generate_case(case_type: str) -> dict:
 Відповідь ТІЛЬКИ JSON без markdown:
 {{"story":"детальний опис справи 5-7 речень з іменами та деталями","hidden_article":"точна стаття та правильний вирок"}}"""
     try:
-        text = await _groq(prompt)
+        text = await _ai(prompt)
         text = text.replace("```json","").replace("```","").strip()
         return json.loads(text[text.find("{"):text.rfind("}")+1])
     except Exception as e:
@@ -40,7 +49,7 @@ async def character_dialogue(character_type: str, case_story: str, history: list
 Суддя: {user_message}
 Відповідай від імені {character_type} виходячи з деталей справи. 2-4 речення, емоційно, реалістично."""
     try:
-        return await _groq(prompt)
+        return await _ai(prompt)
     except Exception as e:
         logger.error(f"dialogue: {e}")
         return f"[Помилка: {e}]"
@@ -53,7 +62,7 @@ async def evaluate_verdict(case_story: str, hidden_article: str, user_verdict: s
 Оціни від 1 до 3. Відповідь ТІЛЬКИ JSON без markdown:
 {{"score":2,"feedback":"детальний розбір українською 3-4 речення"}}"""
     try:
-        text = await _groq(prompt)
+        text = await _ai(prompt)
         text = text.replace("```json","").replace("```","").strip()
         return json.loads(text[text.find("{"):text.rfind("}")+1])
     except Exception as e:
