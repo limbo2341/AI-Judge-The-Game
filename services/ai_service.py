@@ -6,7 +6,7 @@ async def _ai(prompt: str) -> str:
     if not key:
         raise ValueError("CEREBRAS_API_KEY not set")
     body = json.dumps({
-        "model": "llama-3.3-70b",
+        "model": "llama-3.3-70b-versatile",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.9,
         "max_tokens": 1000
